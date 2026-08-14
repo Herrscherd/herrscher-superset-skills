@@ -1,0 +1,44 @@
+name: ci
+on:
+  push:
+    branches: [master]
+  pull_request:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: true
+
+      # This plugin depends on herrscher-contracts. A PR often rides on an
+      # unpublished contracts commit, so build against the matching ref via
+      # go.work: the sibling's branch of the same name when it exists, else its
+      # default. Falls back to the pinned go.mod version.
+      - name: Check out herrscher-contracts
+        uses: actions/checkout@v4
+        with:
+          repository: Herrscherd/herrscher-contracts
+          ref: ${{ github.head_ref }}
+          path: _deps/herrscher-contracts
+          token: ${{ secrets.CONTRACTS_TOKEN || github.token }}
+        continue-on-error: true
+
+      - name: Use local siblings when present
+        run: |
+          if [ -d _deps/herrscher-contracts ]; then
+            go work init . _deps/herrscher-contracts
+          fi
+
+      # Own sources only: _deps holds a checked-out sibling, whose formatting is
+      # its own repo's business — a stray file there must not redden this.
+      - name: gofmt
+        run: |
+          bad="$(gofmt -l . | grep -v '^_deps/' || true)"
+          [ -z "$bad" ] || { echo "$bad"; exit 1; }
+      - run: go build ./...
+      - run: go vet ./...
+      - run: go test -race ./...

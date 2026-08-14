@@ -1,0 +1,6 @@
+*.test
+
+# CI-generated workspace + fetched sibling deps
+/_deps/
+/go.work
+/go.work.sum
