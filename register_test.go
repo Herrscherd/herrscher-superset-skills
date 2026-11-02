@@ -56,7 +56,11 @@ func TestSkills_StatFailureKeepsItsCause(t *testing.T) {
 	if err := os.Chmod(parent, 0o000); err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { _ = os.Chmod(parent, 0o700) })
+	t.Cleanup(func() {
+		if err := os.Chmod(parent, 0o700); err != nil {
+			t.Error(err)
+		}
+	})
 
 	_, err := Skills(context.Background(), cfgHome(home))
 	if !errors.Is(err, fs.ErrPermission) {
@@ -175,25 +179,25 @@ func TestRegistered(t *testing.T) {
 	}
 }
 
-func checkSkillsPlugin(t testing.TB, p contracts.Plugin) {
-	t.Helper()
+func checkSkillsPlugin(tb testing.TB, p contracts.Plugin) {
+	tb.Helper()
 	if p.Manifest.Category != contracts.CategorySkills {
-		t.Fatalf("category is %q, want %q", p.Manifest.Category, contracts.CategorySkills)
+		tb.Fatalf("category is %q, want %q", p.Manifest.Category, contracts.CategorySkills)
 	}
 	if p.Manifest.Status != contracts.StatusExperimental {
-		t.Fatalf("status is %q, want experimental", p.Manifest.Status)
+		tb.Fatalf("status is %q, want experimental", p.Manifest.Status)
 	}
 	if p.Gateway != nil || p.Backend != nil || p.Memory != nil || p.Orchestrator != nil {
-		t.Fatal("a skills plugin must declare no port factory")
+		tb.Fatal("a skills plugin must declare no port factory")
 	}
 	if p.Skills == nil {
-		t.Fatal("no skills factory registered")
+		tb.Fatal("no skills factory registered")
 	}
 	if len(p.Manifest.Config) != 1 || p.Manifest.Config[0].Key != "home" {
-		t.Fatalf("config is %+v, want the single home setting", p.Manifest.Config)
+		tb.Fatalf("config is %+v, want the single home setting", p.Manifest.Config)
 	}
 	if s := p.Manifest.Config[0]; s.Env != "SUPERSET_HOME" || s.Default != supersetStateDir || s.Required {
-		t.Fatalf("home setting is %+v, want SUPERSET_HOME, default %s, not required", s, supersetStateDir)
+		tb.Fatalf("home setting is %+v, want SUPERSET_HOME, default %s, not required", s, supersetStateDir)
 	}
 }
 
