@@ -15,19 +15,11 @@ import (
 	contracts "github.com/Herrscherd/herrscher-contracts"
 )
 
-// skillsFS carries the playbooks. One directory per skill, each holding a
-// SKILL.md, which is the layout the host installs into ~/.claude/skills.
-//
 //go:embed skills
 var skillsFS embed.FS
 
-// defaultHome is where the Superset desktop app keeps its state — its CLI shim,
-// its host service socket, and the worktrees it hands to agents.
-const defaultHome = "~/.superset"
+const supersetStateDir = "~/.superset"
 
-// init self-registers the plugin. A blank import of this package (in the host's
-// generated plugins.go) is enough to make the playbooks discoverable — there is
-// nothing else to wire, since the plugin has no port.
 func init() {
 	contracts.Register(contracts.Plugin{
 		Manifest: contracts.Manifest{
@@ -35,7 +27,7 @@ func init() {
 			Category: contracts.CategorySkills,
 			Status:   contracts.StatusExperimental,
 			Config: []contracts.Setting{
-				{Key: "home", Env: "SUPERSET_HOME", Help: "Superset state dir, whose existence is what proves Superset is installed here (default ~/.superset)", Default: defaultHome},
+				{Key: "home", Env: "SUPERSET_HOME", Help: "Superset state dir, whose existence is what proves Superset is installed here (default ~/.superset)", Default: supersetStateDir},
 			},
 		},
 		Skills: Skills,
@@ -47,7 +39,7 @@ func init() {
 //
 // The check is the point of the factory. These playbooks are about the seam
 // between two harnesses, and on a host with only one of them they are advice
-// about a tool that is not there — noise sitting in every agent's context
+// about a tool that is not there, noise sitting in every agent's context
 // forever, for a workflow it can never run. So the absence of the state dir is
 // an error and not an empty tree: the host installs nothing and says why.
 func Skills(_ context.Context, cfg contracts.PluginConfig) (fs.FS, error) {
@@ -63,19 +55,13 @@ func Skills(_ context.Context, cfg contracts.PluginConfig) (fs.FS, error) {
 	case !fi.IsDir():
 		return nil, fmt.Errorf("no Superset install at %s: not a directory", home)
 	}
-	// Rooted at the skills dir, so the entries are the skill names the host
-	// installs ("superset-session/SKILL.md") and not a "skills/" prefix leaking
-	// this repo's layout into ~/.claude/skills.
 	return fs.Sub(skillsFS, "skills")
 }
 
-// resolveHome expands a leading ~ against the user's home dir. The setting is
-// read from an env var and from config.json, both of which people write with a
-// tilde, and neither of which the shell expands for us.
 func resolveHome(v string) (string, error) {
 	v = strings.TrimSpace(v)
 	if v == "" {
-		v = defaultHome
+		v = supersetStateDir
 	}
 	if v != "~" && !strings.HasPrefix(v, "~/") {
 		return v, nil

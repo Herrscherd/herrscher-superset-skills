@@ -22,7 +22,7 @@ SUPERSET_HOME_DIR         Superset's own state dir (~/.superset)
 SUPERSET_TERMINAL_ID      the terminal this agent is running in
 ```
 
-`SUPERSET_WORKSPACE_ID` unset means you are not in a Superset workspace — do not
+`SUPERSET_WORKSPACE_ID` unset means you are not in a Superset workspace. Do not
 guess from the path. Git answers the other half:
 
 ```bash
@@ -49,15 +49,15 @@ nothing is vendored, and there is no second clone.
 
 ## Which one owns the branch
 
-The worktree the commits are made in — that is the whole answer, and it is
+The worktree the commits are made in is the whole answer, and it is
 decided when the job starts, not later. Two worktrees on one branch is not a
 thing git will do for you: `worktree add` refuses a branch that is already
 checked out elsewhere. Take that refusal as the design, not as an obstacle;
 detaching HEAD or cloning again to get around it buys you two agents writing one
 branch.
 
-Names never collide by construction — Herrscher mints `session/<instance>/<name>`
-for itself, Superset uses the branch you named — so "who owns it" is never
+Names never collide by construction. Herrscher mints `session/<instance>/<name>`
+for itself, Superset uses the branch you named, so "who owns it" is never
 ambiguous once you know where the commits went.
 
 ## Where the PR comes from
@@ -87,7 +87,7 @@ about is work the operator has to go find.
    somewhere else entirely. No flag makes a session adopt an existing worktree.
 
 2. **Do not read `--shared` as "here".** It skips the worktree and runs in the
-   daemon's own checkout — its workspace root, or the directory the daemon was
+   daemon's own checkout: its workspace root, or the directory the daemon was
    launched from when no root is configured. That is not your Superset worktree.
 
 3. **Do not nest one inside the other.** If the daemon's workspace root, or its
@@ -95,7 +95,7 @@ about is work the operator has to go find.
    `.herrscher-sessions/<instance>/<name>` *inside* it. That inner worktree is
    registered in the project's real `.git`, which Superset knows nothing about,
    so removing the workspace directory leaves a registration pointing at nothing
-   and an orphaned `session/…` branch — and takes any uncommitted work in the
+   and an orphaned `session/…` branch, and takes any uncommitted work in the
    inner worktree with it. If it has already happened:
 
    ```bash
@@ -103,9 +103,8 @@ about is work the operator has to go find.
    git -C <project> worktree prune   # clears the registration; keeps the branch
    ```
 
-4. **Do not open a second home for a job that already has one.** Check first —
-   `superset workspaces list --search <branch>` and `herrscher session list` —
-   and if both already exist for one job, say so and let the operator pick which
+4. **Do not open a second home for a job that already has one.** Check first:
+   `superset workspaces list --search <branch>` and `herrscher session list`. If both already exist for one job, say so and let the operator pick which
    survives. Do not try to reconcile two worktrees yourself.
 
 5. **Do not assume a session worktree is provisioned.** Superset runs the repo's
@@ -116,13 +115,13 @@ about is work the operator has to go find.
 
 ## Where a job belongs
 
-- **Superset workspace** — several agents in parallel, a repo whose setup scripts
+- **Superset workspace**: several agents in parallel, a repo whose setup scripts
   matter, reviewing a pull request (`superset workspaces create --pr <n>`), or
   work that must outlive the conversation that started it.
-- **Herrscher session** — the conversation *is* the work: it binds to the
+- **Herrscher session**: the conversation *is* the work, and it binds to the
   daemon's gateways, keeps its transcript, and answers where it was asked.
   `move-the-conversation` is the authority on opening one.
-- **Neither** — a question, a read, a one-file fix on a branch you already have
+- **Neither**: a question, a read, a one-file fix on a branch you already have
   checked out. Spawning a worktree to answer it is the expensive way to type.
 
 Whichever it is, it is one worktree, one branch, one agent. When the job has to

@@ -11,12 +11,11 @@ import (
 	contracts "github.com/Herrscherd/herrscher-contracts"
 )
 
-// cfgHome builds the one-setting config the factory reads.
 func cfgHome(path string) contracts.PluginConfig {
 	return contracts.PluginConfig{Settings: map[string]string{"home": path}}
 }
 
-// A machine without Superset gets no playbooks at all — the whole reason Skills
+// A machine without Superset gets no playbooks at all. That is the whole reason Skills
 // is a factory rather than a fixed tree.
 func TestSkills_NoInstall(t *testing.T) {
 	absent := filepath.Join(t.TempDir(), "no-superset-here")
@@ -155,8 +154,6 @@ func TestRegistered(t *testing.T) {
 	}
 }
 
-// frontmatter parses the leading --- fenced YAML block as flat key: value pairs,
-// which is all a SKILL.md header ever is.
 func frontmatter(body string) (map[string]string, error) {
 	rest, ok := strings.CutPrefix(body, "---\n")
 	if !ok {
