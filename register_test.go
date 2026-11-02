@@ -16,8 +16,6 @@ func cfgHome(path string) contracts.PluginConfig {
 	return contracts.PluginConfig{Settings: map[string]string{"home": path}}
 }
 
-// A machine without Superset gets no playbooks at all. That is the whole reason Skills
-// is a factory rather than a fixed tree.
 func TestSkills_NoInstall(t *testing.T) {
 	absent := filepath.Join(t.TempDir(), "no-superset-here")
 	tree, err := Skills(context.Background(), cfgHome(absent))
@@ -35,7 +33,6 @@ func TestSkills_NoInstall(t *testing.T) {
 	}
 }
 
-// A file where the state dir should be is not an install either.
 func TestSkills_HomeIsAFile(t *testing.T) {
 	file := filepath.Join(t.TempDir(), "superset")
 	if err := os.WriteFile(file, nil, 0o600); err != nil {
@@ -46,8 +43,6 @@ func TestSkills_HomeIsAFile(t *testing.T) {
 	}
 }
 
-// With Superset present the tree is served rooted at the skills dir, so its
-// top-level entries are the skill names the host installs.
 func TestSkills_Installed(t *testing.T) {
 	tree, err := Skills(context.Background(), cfgHome(t.TempDir()))
 	if err != nil {
@@ -73,8 +68,7 @@ func TestSkills_Installed(t *testing.T) {
 	}
 }
 
-// An empty home setting falls back to ~/.superset rather than statting "".
-func TestResolveHome_Defaults(t *testing.T) {
+func TestResolveHome_DefaultAndAbsolute(t *testing.T) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		t.Skip("no user home dir on this machine")
@@ -93,9 +87,6 @@ func TestResolveHome_Defaults(t *testing.T) {
 	}
 }
 
-// Every playbook must be loadable by an agent: frontmatter with a name that
-// matches its directory (that is what the skill is invoked as) and a
-// description, which is the only thing read before the skill is opened.
 func TestEmbeddedSkills_Frontmatter(t *testing.T) {
 	tree, err := fs.Sub(skillsFS, "skills")
 	if err != nil {
@@ -126,7 +117,6 @@ func TestEmbeddedSkills_Frontmatter(t *testing.T) {
 	}
 }
 
-// The registration is what a host sees: a skills-only plugin, no port.
 func TestRegistered(t *testing.T) {
 	var found int
 	for _, p := range contracts.Default.Plugins() {
