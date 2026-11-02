@@ -24,6 +24,9 @@ const supersetStateDir = "~/.superset"
 // ErrNotInstalled reports that no Superset state dir exists where the plugin looks for one.
 var ErrNotInstalled = errors.New("no Superset install")
 
+// ErrNotDirectory reports that the Superset home exists but is a file, not a directory.
+var ErrNotDirectory = errors.New("superset home is not a directory")
+
 func init() {
 	contracts.Register(contracts.Plugin{
 		Manifest: contracts.Manifest{
@@ -51,13 +54,14 @@ func Skills(_ context.Context, cfg contracts.PluginConfig) (fs.FS, error) {
 	if err != nil {
 		return nil, err
 	}
-	switch info, err := os.Stat(home); {
-	case os.IsNotExist(err):
+	info, err := os.Stat(home)
+	switch {
+	case errors.Is(err, fs.ErrNotExist):
 		return nil, fmt.Errorf("%w at %s", ErrNotInstalled, home)
 	case err != nil:
-		return nil, fmt.Errorf("%w at %s: %w", ErrNotInstalled, home, err)
+		return nil, fmt.Errorf("stat superset home %s: %w", home, err)
 	case !info.IsDir():
-		return nil, fmt.Errorf("%w at %s: not a directory", ErrNotInstalled, home)
+		return nil, fmt.Errorf("%w at %s: %w", ErrNotInstalled, home, ErrNotDirectory)
 	}
 	return fs.Sub(skillsFS, "skills")
 }

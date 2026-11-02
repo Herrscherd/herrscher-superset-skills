@@ -38,8 +38,35 @@ func TestSkills_HomeIsAFile(t *testing.T) {
 	if err := os.WriteFile(file, nil, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := Skills(context.Background(), cfgHome(file)); err == nil {
-		t.Fatal("want an error when home is a file, got a tree")
+	_, err := Skills(context.Background(), cfgHome(file))
+	if !errors.Is(err, ErrNotInstalled) {
+		t.Fatalf("a file at home must be ErrNotInstalled, got %v", err)
+	}
+	if !errors.Is(err, ErrNotDirectory) {
+		t.Fatalf("a file at home must be ErrNotDirectory, got %v", err)
+	}
+}
+
+func TestSkills_StatFailureKeepsItsCause(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("root ignores directory permissions")
+	}
+	parent := t.TempDir()
+	home := filepath.Join(parent, "superset")
+	if err := os.Mkdir(home, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(parent, 0o000); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(parent, 0o700) })
+
+	_, err := Skills(context.Background(), cfgHome(home))
+	if !errors.Is(err, fs.ErrPermission) {
+		t.Fatalf("a permission failure must keep its cause, got %v", err)
+	}
+	if errors.Is(err, ErrNotInstalled) {
+		t.Fatalf("a permission failure must not be reported as not installed, got %v", err)
 	}
 }
 
