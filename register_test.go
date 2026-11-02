@@ -2,22 +2,21 @@ package supersetskills
 
 import (
 	"context"
+	"errors"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
-	"github.com/Herrscherd/herrscher-contracts"
+	contracts "github.com/Herrscherd/herrscher-contracts"
 )
 
-// cfgHome builds the one-setting config the factory reads.
 func cfgHome(path string) contracts.PluginConfig {
 	return contracts.PluginConfig{Settings: map[string]string{"home": path}}
 }
 
-// A machine without Superset gets no playbooks at all — the whole reason Skills
-// is a factory rather than a fixed tree.
 func TestSkills_NoInstall(t *testing.T) {
 	absent := filepath.Join(t.TempDir(), "no-superset-here")
 	tree, err := Skills(context.Background(), cfgHome(absent))
@@ -27,24 +26,65 @@ func TestSkills_NoInstall(t *testing.T) {
 	if tree != nil {
 		t.Fatalf("want no tree alongside the error, got %v", tree)
 	}
-	if !strings.Contains(err.Error(), absent) {
-		t.Fatalf("error must name the path it looked at, got %q", err)
+	if !errors.Is(err, ErrNotInstalled) {
+		t.Fatalf("error must be ErrNotInstalled, got %v", err)
 	}
 }
 
-// A file where the state dir should be is not an install either.
 func TestSkills_HomeIsAFile(t *testing.T) {
 	file := filepath.Join(t.TempDir(), "superset")
 	if err := os.WriteFile(file, nil, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := Skills(context.Background(), cfgHome(file)); err == nil {
-		t.Fatal("want an error when home is a file, got a tree")
+	_, err := Skills(context.Background(), cfgHome(file))
+	if !errors.Is(err, ErrNotInstalled) {
+		t.Fatalf("a file at home must be ErrNotInstalled, got %v", err)
+	}
+	if !errors.Is(err, ErrNotDirectory) {
+		t.Fatalf("a file at home must be ErrNotDirectory, got %v", err)
 	}
 }
 
-// With Superset present the tree is served rooted at the skills dir, so its
-// top-level entries are the skill names the host installs.
+func TestSkills_StatFailureKeepsItsCause(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod does not restrict directory access on Windows")
+	}
+	if os.Geteuid() == 0 {
+		t.Skip("root ignores directory permissions")
+	}
+	parent := t.TempDir()
+	home := filepath.Join(parent, "superset")
+	if err := os.Mkdir(home, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(parent, 0o000); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := os.Chmod(parent, 0o700); err != nil {
+			t.Error(err)
+		}
+	})
+
+	_, err := Skills(context.Background(), cfgHome(home))
+	if !errors.Is(err, fs.ErrPermission) {
+		t.Fatalf("a permission failure must keep its cause, got %v", err)
+	}
+	if errors.Is(err, ErrNotInstalled) {
+		t.Fatalf("a permission failure must not be reported as not installed, got %v", err)
+	}
+}
+
+func TestSkills_OtherUsersHomeIsUnsupported(t *testing.T) {
+	tree, err := Skills(context.Background(), cfgHome("~bob/.superset"))
+	if !errors.Is(err, ErrUnsupportedHome) {
+		t.Fatalf("a ~user home must be ErrUnsupportedHome, got %v", err)
+	}
+	if tree != nil {
+		t.Fatalf("want no tree alongside the error, got %v", tree)
+	}
+}
+
 func TestSkills_Installed(t *testing.T) {
 	tree, err := Skills(context.Background(), cfgHome(t.TempDir()))
 	if err != nil {
@@ -70,8 +110,7 @@ func TestSkills_Installed(t *testing.T) {
 	}
 }
 
-// An empty home setting falls back to ~/.superset rather than statting "".
-func TestResolveHome_Defaults(t *testing.T) {
+func TestResolveHome_DefaultAndAbsolute(t *testing.T) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		t.Skip("no user home dir on this machine")
@@ -90,9 +129,47 @@ func TestResolveHome_Defaults(t *testing.T) {
 	}
 }
 
-// Every playbook must be loadable by an agent: frontmatter with a name that
-// matches its directory (that is what the skill is invoked as) and a
-// description, which is the only thing read before the skill is opened.
+func TestResolveHome_KeepsSurroundingSpacesInAPath(t *testing.T) {
+	const in = "/opt/superset "
+	if got, err := resolveHome(in); err != nil || got != in {
+		t.Fatalf("resolveHome(%q) = (%q,%v), want the value unchanged", in, got, err)
+	}
+}
+
+func TestResolveHome_LeadingSpacesDoNotHideTheTilde(t *testing.T) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		t.Skip("no user home dir on this machine")
+	}
+	want := filepath.Join(home, ".superset")
+	if got, err := resolveHome(" ~/.superset"); err != nil || got != want {
+		t.Fatalf("resolveHome(\" ~/.superset\") = (%q,%v), want (%q,nil)", got, err, want)
+	}
+	if _, err := resolveHome(" ~bob/.superset"); !errors.Is(err, ErrUnsupportedHome) {
+		t.Fatalf("a leading-space ~user home must be ErrUnsupportedHome, got %v", err)
+	}
+}
+
+func TestResolveHome_OtherUsersAreRefused(t *testing.T) {
+	for _, in := range []string{"~bob/.superset", "~bob", " ~bob/.superset"} {
+		if _, err := resolveHome(in); !errors.Is(err, ErrUnsupportedHome) {
+			t.Fatalf("resolveHome(%q) must be ErrUnsupportedHome, got %v", in, err)
+		}
+	}
+}
+
+func TestResolveHome_TildeAloneIsHome(t *testing.T) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		t.Skip("no user home dir on this machine")
+	}
+	for _, in := range []string{"~", "~/"} {
+		if got, err := resolveHome(in); err != nil || got != home {
+			t.Fatalf("resolveHome(%q) = (%q,%v), want (%q,nil)", in, got, err, home)
+		}
+	}
+}
+
 func TestEmbeddedSkills_Frontmatter(t *testing.T) {
 	tree, err := fs.Sub(skillsFS, "skills")
 	if err != nil {
@@ -123,7 +200,6 @@ func TestEmbeddedSkills_Frontmatter(t *testing.T) {
 	}
 }
 
-// The registration is what a host sees: a skills-only plugin, no port.
 func TestRegistered(t *testing.T) {
 	var found int
 	for _, p := range contracts.Default.Plugins() {
@@ -131,32 +207,35 @@ func TestRegistered(t *testing.T) {
 			continue
 		}
 		found++
-		if p.Manifest.Category != contracts.CategorySkills {
-			t.Fatalf("category is %q, want %q", p.Manifest.Category, contracts.CategorySkills)
-		}
-		if p.Manifest.Status != contracts.StatusExperimental {
-			t.Fatalf("status is %q, want experimental", p.Manifest.Status)
-		}
-		if p.Gateway != nil || p.Backend != nil || p.Memory != nil || p.Orchestrator != nil {
-			t.Fatal("a skills plugin must declare no port factory")
-		}
-		if p.Skills == nil {
-			t.Fatal("no skills factory registered")
-		}
-		if len(p.Manifest.Config) != 1 || p.Manifest.Config[0].Key != "home" {
-			t.Fatalf("config is %+v, want the single home setting", p.Manifest.Config)
-		}
-		if s := p.Manifest.Config[0]; s.Env != "SUPERSET_HOME" || s.Default != defaultHome || s.Required {
-			t.Fatalf("home setting is %+v, want SUPERSET_HOME, default %s, not required", s, defaultHome)
-		}
+		checkSkillsPlugin(t, p)
 	}
 	if found != 1 {
 		t.Fatalf("want exactly one registered superset plugin, got %d", found)
 	}
 }
 
-// frontmatter parses the leading --- fenced YAML block as flat key: value pairs,
-// which is all a SKILL.md header ever is.
+func checkSkillsPlugin(tb testing.TB, p contracts.Plugin) {
+	tb.Helper()
+	if p.Manifest.Category != contracts.CategorySkills {
+		tb.Fatalf("category is %q, want %q", p.Manifest.Category, contracts.CategorySkills)
+	}
+	if p.Manifest.Status != contracts.StatusExperimental {
+		tb.Fatalf("status is %q, want experimental", p.Manifest.Status)
+	}
+	if p.Gateway != nil || p.Backend != nil || p.Memory != nil || p.Orchestrator != nil {
+		tb.Fatal("a skills plugin must declare no port factory")
+	}
+	if p.Skills == nil {
+		tb.Fatal("no skills factory registered")
+	}
+	if len(p.Manifest.Config) != 1 || p.Manifest.Config[0].Key != "home" {
+		tb.Fatalf("config is %+v, want the single home setting", p.Manifest.Config)
+	}
+	if s := p.Manifest.Config[0]; s.Env != "SUPERSET_HOME" || s.Default != supersetStateDir || s.Required {
+		tb.Fatalf("home setting is %+v, want SUPERSET_HOME, default %s, not required", s, supersetStateDir)
+	}
+}
+
 func frontmatter(body string) (map[string]string, error) {
 	rest, ok := strings.CutPrefix(body, "---\n")
 	if !ok {
@@ -166,7 +245,7 @@ func frontmatter(body string) (map[string]string, error) {
 	if !ok {
 		return nil, fs.ErrInvalid
 	}
-	out := map[string]string{}
+	out := make(map[string]string)
 	for _, line := range strings.Split(head, "\n") {
 		k, v, ok := strings.Cut(line, ":")
 		if !ok {
