@@ -32,7 +32,8 @@ import _ "github.com/Herrscherd/herrscher-superset-skills"
 |---|---|---|---|
 | `home` | `SUPERSET_HOME` | `~/.superset` | the Superset state directory, whose existence proves Superset is installed here |
 
-It is optional, and a leading `~/` is expanded against the user's home directory.
+It is optional. `~` and `~/` are expanded against the user's home directory;
+`~user/...` is refused with an error rather than read as a relative path.
 
 ## What it ships
 
@@ -47,13 +48,32 @@ itself.
 
 ## When it installs nothing
 
-`Skills` stats the configured home and returns `no Superset install at <path>`
-when it is absent. The host reports that and installs nothing. It is not fatal,
-and every other plugin in the build is unaffected.
+`Skills` stats the configured home. When it is absent, or is a file, it returns
+`ErrNotInstalled`; the host reports that and installs nothing. It is not fatal,
+and every other plugin in the build is unaffected. Any other stat failure, such
+as a permission error, is returned with its cause and is not `ErrNotInstalled`.
 
 One naming note: Superset's own agents export `SUPERSET_HOME_DIR`, not
 `SUPERSET_HOME`. The setting is named for this plugin's config surface, and it
 defaults to `~/.superset`, so a normal install needs no configuration at all.
+
+## Packages
+
+| Package | Kind | What it is |
+|---|---|---|
+| `github.com/Herrscherd/herrscher-superset-skills` (root) | plugin module | The `superset` skills plugin: the embedded playbooks and their registration |
+| `tools/commentcheck` | build tooling | Refuses stray comments and doc comments in test files; run by `scripts/check.sh` |
+
+## Build and check
+
+```bash
+go build ./...
+scripts/check.sh
+```
+
+`scripts/check.sh` runs the module tidy and verify checks, the formatter and
+linter, the comment check, the regenerate-from-scratch diff, the dash check,
+`go test -race -shuffle=on`, the build and `govulncheck`. CI runs the same script.
 
 ## Further reading
 

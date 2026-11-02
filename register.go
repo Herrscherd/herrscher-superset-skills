@@ -1,6 +1,7 @@
-// Package supersetskills contributes the playbooks that teach an agent where a
-// Herrscher session ends and a Superset workspace begins. It builds nothing and
-// implements no port: what it adds to a host is what the agent knows.
+// Package supersetskills is a plugin module. It contributes the playbooks that
+// teach an agent where a Herrscher session ends and a Superset workspace
+// begins. It builds nothing and implements no port: what it adds to a host is
+// what the agent knows.
 package supersetskills
 
 import (
