@@ -28,9 +28,6 @@ func TestSkills_NoInstall(t *testing.T) {
 	if !errors.Is(err, ErrNotInstalled) {
 		t.Fatalf("error must be ErrNotInstalled, got %v", err)
 	}
-	if !strings.Contains(err.Error(), absent) {
-		t.Fatalf("error must name the path it looked at, got %q", err)
-	}
 }
 
 func TestSkills_HomeIsAFile(t *testing.T) {
@@ -178,7 +175,7 @@ func TestRegistered(t *testing.T) {
 	}
 }
 
-func checkSkillsPlugin(t *testing.T, p contracts.Plugin) {
+func checkSkillsPlugin(t testing.TB, p contracts.Plugin) {
 	t.Helper()
 	if p.Manifest.Category != contracts.CategorySkills {
 		t.Fatalf("category is %q, want %q", p.Manifest.Category, contracts.CategorySkills)

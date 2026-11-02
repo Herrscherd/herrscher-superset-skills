@@ -44,14 +44,10 @@ func init() {
 	})
 }
 
-// Skills is the plugin's whole contribution: the embedded playbook tree, but
-// only on a machine that actually runs Superset.
-//
-// The check is the point of the factory. These playbooks are about the seam
-// between two harnesses, and on a host with only one of them they are advice
-// about a tool that is not there, noise sitting in every agent's context
-// forever, for a workflow it can never run. So the absence of the state dir is
-// an error and not an empty tree: the host installs nothing and says why.
+// Skills returns the embedded playbook tree when the Superset home is a
+// directory. A missing home returns ErrNotInstalled; a file at that path
+// returns ErrNotInstalled wrapping ErrNotDirectory. Any other stat failure is
+// returned with its cause and without ErrNotInstalled.
 func Skills(_ context.Context, cfg contracts.PluginConfig) (fs.FS, error) {
 	home, err := resolveHome(cfg.Get("home"))
 	if err != nil {
