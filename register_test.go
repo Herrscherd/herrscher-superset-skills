@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -45,6 +46,9 @@ func TestSkills_HomeIsAFile(t *testing.T) {
 }
 
 func TestSkills_StatFailureKeepsItsCause(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod does not restrict directory access on Windows")
+	}
 	if os.Geteuid() == 0 {
 		t.Skip("root ignores directory permissions")
 	}
@@ -68,6 +72,16 @@ func TestSkills_StatFailureKeepsItsCause(t *testing.T) {
 	}
 	if errors.Is(err, ErrNotInstalled) {
 		t.Fatalf("a permission failure must not be reported as not installed, got %v", err)
+	}
+}
+
+func TestSkills_OtherUsersHomeIsUnsupported(t *testing.T) {
+	tree, err := Skills(context.Background(), cfgHome("~bob/.superset"))
+	if !errors.Is(err, ErrUnsupportedHome) {
+		t.Fatalf("a ~user home must be ErrUnsupportedHome, got %v", err)
+	}
+	if tree != nil {
+		t.Fatalf("want no tree alongside the error, got %v", tree)
 	}
 }
 
@@ -112,6 +126,13 @@ func TestResolveHome_DefaultAndAbsolute(t *testing.T) {
 	}
 	if got, err := resolveHome("/opt/superset"); err != nil || got != "/opt/superset" {
 		t.Fatalf("an absolute path must pass through unchanged, got (%q,%v)", got, err)
+	}
+}
+
+func TestResolveHome_KeepsSurroundingSpacesInAPath(t *testing.T) {
+	const in = "/opt/superset "
+	if got, err := resolveHome(in); err != nil || got != in {
+		t.Fatalf("resolveHome(%q) = (%q,%v), want the value unchanged", in, got, err)
 	}
 }
 

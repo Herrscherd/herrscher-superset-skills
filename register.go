@@ -47,8 +47,9 @@ func init() {
 
 // Skills returns the embedded playbook tree when the Superset home is a
 // directory. A missing home returns ErrNotInstalled; a file at that path
-// returns ErrNotInstalled wrapping ErrNotDirectory. Any other stat failure is
-// returned with its cause and without ErrNotInstalled.
+// returns ErrNotInstalled wrapping ErrNotDirectory. A home naming another user
+// (`~user/...`) returns ErrUnsupportedHome. Any other stat failure is returned
+// with its cause and without ErrNotInstalled.
 func Skills(_ context.Context, cfg contracts.PluginConfig) (fs.FS, error) {
 	home, err := resolveHome(cfg.Get("home"))
 	if err != nil {
@@ -67,8 +68,7 @@ func Skills(_ context.Context, cfg contracts.PluginConfig) (fs.FS, error) {
 }
 
 func resolveHome(value string) (string, error) {
-	value = strings.TrimSpace(value)
-	if value == "" {
+	if strings.TrimSpace(value) == "" {
 		value = supersetStateDir
 	}
 	if value != "~" && !strings.HasPrefix(value, "~/") {

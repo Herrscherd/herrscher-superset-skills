@@ -42,10 +42,6 @@ It is optional. `~` and `~/` are expanded against the user's home directory;
 | `superset-session` | A job arrived and belongs in a worktree, but which one? How to tell where you are standing, which harness owns the branch, where the PR comes from, and the four ways to nest the two worktrees wrongly |
 | `superset-handoff` | Moving work between a Herrscher session and a Superset agent in either direction: the commands each side takes, what the brief must carry, and where the answer lands once it is done |
 
-Both are grounded in mechanisms verified against the two CLIs and against a live
-Superset install. Neither restates the eight skills Superset installs and updates
-itself.
-
 ## When it installs nothing
 
 `Skills` stats the configured home. When it is absent, or is a file, it returns
