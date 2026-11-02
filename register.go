@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/Herrscherd/herrscher-contracts"
+	contracts "github.com/Herrscherd/herrscher-contracts"
 )
 
 // skillsFS carries the playbooks. One directory per skill, each holding a

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Herrscherd/herrscher-contracts"
+	contracts "github.com/Herrscherd/herrscher-contracts"
 )
 
 // cfgHome builds the one-setting config the factory reads.
