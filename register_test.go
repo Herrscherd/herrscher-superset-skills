@@ -136,8 +136,22 @@ func TestResolveHome_KeepsSurroundingSpacesInAPath(t *testing.T) {
 	}
 }
 
+func TestResolveHome_LeadingSpacesDoNotHideTheTilde(t *testing.T) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		t.Skip("no user home dir on this machine")
+	}
+	want := filepath.Join(home, ".superset")
+	if got, err := resolveHome(" ~/.superset"); err != nil || got != want {
+		t.Fatalf("resolveHome(\" ~/.superset\") = (%q,%v), want (%q,nil)", got, err, want)
+	}
+	if _, err := resolveHome(" ~bob/.superset"); !errors.Is(err, ErrUnsupportedHome) {
+		t.Fatalf("a leading-space ~user home must be ErrUnsupportedHome, got %v", err)
+	}
+}
+
 func TestResolveHome_OtherUsersAreRefused(t *testing.T) {
-	for _, in := range []string{"~bob/.superset", "~bob"} {
+	for _, in := range []string{"~bob/.superset", "~bob", " ~bob/.superset"} {
 		if _, err := resolveHome(in); !errors.Is(err, ErrUnsupportedHome) {
 			t.Fatalf("resolveHome(%q) must be ErrUnsupportedHome, got %v", in, err)
 		}

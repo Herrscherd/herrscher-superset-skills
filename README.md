@@ -32,8 +32,10 @@ import _ "github.com/Herrscherd/herrscher-superset-skills"
 |---|---|---|---|
 | `home` | `SUPERSET_HOME` | `~/.superset` | the Superset state directory, whose existence proves Superset is installed here |
 
-It is optional. `~` and `~/` are expanded against the user's home directory;
-`~user/...` is refused with an error rather than read as a relative path.
+It is optional. `~` and `~/` are expanded against the user's home directory,
+also when a leading space precedes them; `~user/...` is refused with an error
+rather than read as a relative path. A blank value counts as unset, and any
+other value is used as given.
 
 ## What it ships
 

@@ -68,21 +68,22 @@ func Skills(_ context.Context, cfg contracts.PluginConfig) (fs.FS, error) {
 }
 
 func resolveHome(value string) (string, error) {
-	if strings.TrimSpace(value) == "" {
-		value = supersetStateDir
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		trimmed = supersetStateDir
 	}
-	if value != "~" && !strings.HasPrefix(value, "~/") {
-		if strings.HasPrefix(value, "~") {
-			return "", fmt.Errorf("%w: %q", ErrUnsupportedHome, value)
-		}
+	if !strings.HasPrefix(trimmed, "~") {
 		return value, nil
+	}
+	if trimmed != "~" && !strings.HasPrefix(trimmed, "~/") {
+		return "", fmt.Errorf("%w: %q", ErrUnsupportedHome, trimmed)
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return "", fmt.Errorf("expand %q: %w", value, err)
+		return "", fmt.Errorf("expand %q: %w", trimmed, err)
 	}
-	if value == "~" {
+	if trimmed == "~" {
 		return home, nil
 	}
-	return filepath.Join(home, strings.TrimPrefix(value, "~/")), nil
+	return filepath.Join(home, strings.TrimPrefix(trimmed, "~/")), nil
 }
