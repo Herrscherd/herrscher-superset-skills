@@ -114,6 +114,26 @@ func TestResolveHome_DefaultAndAbsolute(t *testing.T) {
 	}
 }
 
+func TestResolveHome_OtherUsersAreRefused(t *testing.T) {
+	for _, in := range []string{"~bob/.superset", "~bob"} {
+		if _, err := resolveHome(in); !errors.Is(err, ErrUnsupportedHome) {
+			t.Fatalf("resolveHome(%q) must be ErrUnsupportedHome, got %v", in, err)
+		}
+	}
+}
+
+func TestResolveHome_TildeAloneIsHome(t *testing.T) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		t.Skip("no user home dir on this machine")
+	}
+	for _, in := range []string{"~", "~/"} {
+		if got, err := resolveHome(in); err != nil || got != home {
+			t.Fatalf("resolveHome(%q) = (%q,%v), want (%q,nil)", in, got, err, home)
+		}
+	}
+}
+
 func TestEmbeddedSkills_Frontmatter(t *testing.T) {
 	tree, err := fs.Sub(skillsFS, "skills")
 	if err != nil {

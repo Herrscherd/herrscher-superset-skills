@@ -27,6 +27,9 @@ var ErrNotInstalled = errors.New("no Superset install")
 // ErrNotDirectory reports that the Superset home exists but is a file, not a directory.
 var ErrNotDirectory = errors.New("superset home is not a directory")
 
+// ErrUnsupportedHome reports a superset home that names another user's home (`~user/...`), which is not expanded.
+var ErrUnsupportedHome = errors.New("only ~ and ~/ are expanded in the superset home")
+
 func init() {
 	contracts.Register(contracts.Plugin{
 		Manifest: contracts.Manifest{
@@ -72,6 +75,9 @@ func resolveHome(value string) (string, error) {
 		value = supersetStateDir
 	}
 	if value != "~" && !strings.HasPrefix(value, "~/") {
+		if strings.HasPrefix(value, "~") {
+			return "", fmt.Errorf("%w: %q", ErrUnsupportedHome, value)
+		}
 		return value, nil
 	}
 	home, err := os.UserHomeDir()
