@@ -51,31 +51,31 @@ func Skills(_ context.Context, cfg contracts.PluginConfig) (fs.FS, error) {
 	if err != nil {
 		return nil, err
 	}
-	switch fi, err := os.Stat(home); {
+	switch info, err := os.Stat(home); {
 	case os.IsNotExist(err):
 		return nil, fmt.Errorf("%w at %s", ErrNotInstalled, home)
 	case err != nil:
 		return nil, fmt.Errorf("%w at %s: %w", ErrNotInstalled, home, err)
-	case !fi.IsDir():
+	case !info.IsDir():
 		return nil, fmt.Errorf("%w at %s: not a directory", ErrNotInstalled, home)
 	}
 	return fs.Sub(skillsFS, "skills")
 }
 
-func resolveHome(v string) (string, error) {
-	v = strings.TrimSpace(v)
-	if v == "" {
-		v = supersetStateDir
+func resolveHome(value string) (string, error) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		value = supersetStateDir
 	}
-	if v != "~" && !strings.HasPrefix(v, "~/") {
-		return v, nil
+	if value != "~" && !strings.HasPrefix(value, "~/") {
+		return value, nil
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return "", fmt.Errorf("expand %q: %w", v, err)
+		return "", fmt.Errorf("expand %q: %w", value, err)
 	}
-	if v == "~" {
+	if value == "~" {
 		return home, nil
 	}
-	return filepath.Join(home, strings.TrimPrefix(v, "~/")), nil
+	return filepath.Join(home, strings.TrimPrefix(value, "~/")), nil
 }
