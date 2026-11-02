@@ -2,6 +2,7 @@ package supersetskills
 
 import (
 	"context"
+	"errors"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -25,6 +26,9 @@ func TestSkills_NoInstall(t *testing.T) {
 	}
 	if tree != nil {
 		t.Fatalf("want no tree alongside the error, got %v", tree)
+	}
+	if !errors.Is(err, ErrNotInstalled) {
+		t.Fatalf("error must be ErrNotInstalled, got %v", err)
 	}
 	if !strings.Contains(err.Error(), absent) {
 		t.Fatalf("error must name the path it looked at, got %q", err)
