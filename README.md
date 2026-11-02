@@ -34,8 +34,9 @@ import _ "github.com/Herrscherd/herrscher-superset-skills"
 
 It is optional. `~` and `~/` are expanded against the user's home directory,
 also when a leading space precedes them; `~user/...` is refused with an error
-rather than read as a relative path. A blank value counts as unset, and any
-other value is used as given.
+rather than read as a relative path. A value that starts with `~` once trimmed
+is expanded from its trimmed form. A blank value counts as unset, and any other
+value is used exactly as given, surrounding spaces included.
 
 ## What it ships
 
