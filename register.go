@@ -21,6 +21,7 @@ var skillsFS embed.FS
 
 const supersetStateDir = "~/.superset"
 
+// ErrNotInstalled reports that no Superset state dir exists where the plugin looks for one.
 var ErrNotInstalled = errors.New("no Superset install")
 
 func init() {

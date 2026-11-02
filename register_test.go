@@ -168,7 +168,7 @@ func frontmatter(body string) (map[string]string, error) {
 	if !ok {
 		return nil, fs.ErrInvalid
 	}
-	out := map[string]string{}
+	out := make(map[string]string)
 	for _, line := range strings.Split(head, "\n") {
 		k, v, ok := strings.Cut(line, ":")
 		if !ok {
