@@ -6,6 +6,7 @@ package supersetskills
 import (
 	"context"
 	"embed"
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -19,6 +20,8 @@ import (
 var skillsFS embed.FS
 
 const supersetStateDir = "~/.superset"
+
+var ErrNotInstalled = errors.New("no Superset install")
 
 func init() {
 	contracts.Register(contracts.Plugin{
@@ -49,11 +52,11 @@ func Skills(_ context.Context, cfg contracts.PluginConfig) (fs.FS, error) {
 	}
 	switch fi, err := os.Stat(home); {
 	case os.IsNotExist(err):
-		return nil, fmt.Errorf("no Superset install at %s", home)
+		return nil, fmt.Errorf("%w at %s", ErrNotInstalled, home)
 	case err != nil:
-		return nil, fmt.Errorf("no Superset install at %s: %w", home, err)
+		return nil, fmt.Errorf("%w at %s: %w", ErrNotInstalled, home, err)
 	case !fi.IsDir():
-		return nil, fmt.Errorf("no Superset install at %s: not a directory", home)
+		return nil, fmt.Errorf("%w at %s: not a directory", ErrNotInstalled, home)
 	}
 	return fs.Sub(skillsFS, "skills")
 }
