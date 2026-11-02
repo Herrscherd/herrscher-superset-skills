@@ -145,8 +145,8 @@ func TestRegistered(t *testing.T) {
 		if len(p.Manifest.Config) != 1 || p.Manifest.Config[0].Key != "home" {
 			t.Fatalf("config is %+v, want the single home setting", p.Manifest.Config)
 		}
-		if s := p.Manifest.Config[0]; s.Env != "SUPERSET_HOME" || s.Default != defaultHome || s.Required {
-			t.Fatalf("home setting is %+v, want SUPERSET_HOME, default %s, not required", s, defaultHome)
+		if s := p.Manifest.Config[0]; s.Env != "SUPERSET_HOME" || s.Default != supersetStateDir || s.Required {
+			t.Fatalf("home setting is %+v, want SUPERSET_HOME, default %s, not required", s, supersetStateDir)
 		}
 	}
 	if found != 1 {
