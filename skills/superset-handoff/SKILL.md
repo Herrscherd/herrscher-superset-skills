@@ -28,6 +28,12 @@ separate from the desktop app's: a workspace shell can perfectly well answer
 a `SUPERSET_API_KEY` in the environment). Never attempt an interactive login
 yourself, you will hang on the prompt and the turn ends with nothing.
 
+When `command -v superset` finds nothing, or the shim it points to cannot run, the
+desktop app is probably down: a CLI that is a shim into a mount existing only
+while the app runs fails with "command not found" for that reason. Report that and
+stop; do not go hunting for the real binary, whose path is stale by the next
+launch.
+
 If the bare `herrscher` name does not resolve, the daemon's environment is
 narrower than a login shell's; fall back to `"$(go env GOPATH)"/bin/herrscher`
 rather than reporting it missing.
@@ -37,7 +43,12 @@ rather than reporting it missing.
 Pick the target first. A new branch needs a workspace; work already sitting in a
 workspace needs only an agent.
 
+Check the existing workspaces before creating one: a second workspace on the same
+branch splits the work in two.
+
 ```bash
+superset workspaces list                          # is there already one on this branch?
+
 # new worktree + agent in one call
 superset workspaces create --local --project <project-id> --name <name> \
   --branch <branch> --agent claude --prompt "<the brief>" --json
@@ -60,6 +71,17 @@ superset agents create --workspace <workspace-id> --agent claude \
 `sessionId`: it is the terminal id every later command wants, and re-deriving it
 means guessing from `superset terminals list --workspace <id>`, which lists live
 sessions without saying which agent is which.
+
+## What the brief must carry
+
+Whatever prompt you hand the new agent is all it will ever know about the work.
+What you leave out, the operator retypes.
+
+- **What is being built**, in the operator's own framing, since a restatement drifts.
+- **What was already decided**, and what is still open, especially the questions
+  the operator has not answered, so they are not asked again.
+- **What was found in the code**: files, functions, the constraints that matter.
+- **The immediate next step.**
 
 Follow-ups and answers travel over the terminal, not back into your channel:
 
@@ -89,10 +111,19 @@ herrscher session create --name <slug> [--project <name>] [--model <id>] \
 ```
 
 The brief is the session's first turn, and it is all the new session will ever
-know. `move-the-conversation` is the authority on `session create`. Read it
-before using the flags, especially `--under` versus `--channel_id`, which decide
-whether the new conversation surfaces where the operator is looking or somewhere
-they have to hunt for.
+know. To open a Herrscher session seeded from a Herrscher session already holding
+this work, use the native verb, which writes the brief itself from that session:
+
+```bash
+herrscher session handoff --name <source> --to <new-name> [--under <id> | --channel_id <id>]
+```
+
+Without `--to` it creates nothing and says how to open the source session instead.
+`herrscher commands` prints every verb the daemon dispatches, with its parameters:
+read the flags there, not in this file. `--under` and `--channel_id` are exclusive,
+and they decide whether the new conversation surfaces where the operator is looking
+or somewhere they have to hunt for. `herrscher session create` is for a fresh
+session with a brief you write yourself.
 
 Do not point the new session at your own worktree: it will not take a path, and
 what it does instead is documented in `superset-session`. Hand over the *branch*
@@ -128,4 +159,5 @@ operator is waiting in this channel, you are the one who has to go and fetch it.
 - **Clean up only on the other side's terms.** `terminals close` ends a session
   and deleting a workspace is destructive and separate; `herrscher session close
   --force` discards uncommitted work. None of them is a way to tidy up after
-  yourself unless the operator asked for it.
+  yourself unless the operator asked for it. When a delete leaves the git branch
+  behind, say so rather than letting stale branches accumulate silently.
