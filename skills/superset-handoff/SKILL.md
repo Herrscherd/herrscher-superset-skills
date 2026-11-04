@@ -126,8 +126,10 @@ read the flags there, not in this file. `--under` and `--channel_id` are exclusi
 and they decide whether the new conversation surfaces where the operator is looking
 or somewhere they have to hunt for. When you launch the handoff yourself, pass
 neither: the new session attaches under your own session, and the daemon allows
-you three handoffs per source an hour, one at a time. Choosing `--under` or
-`--channel_id` is the operator's call. `herrscher session create` is for a fresh
+the whole session tree (the top session and everything handed off from it) gets
+three handoffs an hour, one at a time. That bound is a local guard, not a security
+boundary: the operator socket is reachable by the same user, and the count resets
+when the daemon restarts. Choosing `--under` or `--channel_id` is the operator's call. `herrscher session create` is for a fresh
 session with a brief you write yourself.
 
 Do not point the new session at your own worktree: it will not take a path, and
