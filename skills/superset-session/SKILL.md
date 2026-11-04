@@ -69,8 +69,7 @@ git push -u origin "$(git branch --show-current)"
 gh pr create
 ```
 
-That is the `pr-job` flow unchanged; being inside `~/.superset/worktrees/…`
-changes nothing about it. What it does change is *where you must be standing*: a
+Being inside `~/.superset/worktrees/…` changes nothing about that git flow. What it does change is *where you must be standing*: a
 Superset workspace's branch is pushed from the Superset worktree, a session's
 branch from the session worktree. Pushing one from the other means committing to
 a branch that is checked out somewhere else, where another agent is working.
@@ -120,7 +119,8 @@ about is work the operator has to go find.
   work that must outlive the conversation that started it.
 - **Herrscher session**: the conversation *is* the work, and it binds to the
   daemon's gateways, keeps its transcript, and answers where it was asked.
-  `move-the-conversation` is the authority on opening one.
+  `herrscher session create` opens one with a brief you write; see
+  `superset-handoff` to carry the conversation across.
 - **Neither**: a question, a read, a one-file fix on a branch you already have
   checked out. Spawning a worktree to answer it is the expensive way to type.
 
