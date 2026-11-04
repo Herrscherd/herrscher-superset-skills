@@ -127,10 +127,13 @@ and they decide whether the new conversation surfaces where the operator is look
 or somewhere they have to hunt for. When you launch the handoff yourself, pass
 neither: the new session attaches under your own session, and the daemon allows
 the whole session tree (the top session and everything handed off from it) gets
-three handoffs an hour, one at a time. That bound is a local guard, not a security
-boundary: the operator socket is reachable by the same user, and the count resets
-when the daemon restarts. Choosing `--under` or `--channel_id` is the operator's call. `herrscher session create` is for a fresh
-session with a brief you write yourself.
+three handoffs an hour, one at a time. A handoff counts once its brief starts, even if
+it then fails; a request refused before that costs nothing. That bound is a local guard,
+not a security boundary: the operator socket is reachable by the same user, and the count
+resets when the daemon restarts. When the operator closes the root of a tree, its children
+become roots and their quota starts again. Choosing `--under` or `--channel_id` is the
+operator's call. `herrscher session create` is for a fresh session with a brief you write
+yourself.
 
 Do not point the new session at your own worktree: it will not take a path, and
 what it does instead is documented in `superset-session`. Hand over the *branch*
