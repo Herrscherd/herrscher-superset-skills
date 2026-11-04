@@ -49,6 +49,8 @@ branch splits the work in two.
 ```bash
 superset workspaces list                          # is there already one on this branch?
 
+superset projects list                             # the project id to pass to --project below
+
 # new worktree + agent in one call
 superset workspaces create --local --project <project-id> --name <name> \
   --branch <branch> --agent claude --prompt "<the brief>" --json
@@ -122,7 +124,10 @@ Without `--to` it creates nothing and says how to open the source session instea
 `herrscher commands` prints every verb the daemon dispatches, with its parameters:
 read the flags there, not in this file. `--under` and `--channel_id` are exclusive,
 and they decide whether the new conversation surfaces where the operator is looking
-or somewhere they have to hunt for. `herrscher session create` is for a fresh
+or somewhere they have to hunt for. When you launch the handoff yourself, pass
+neither: the new session attaches under your own session, and the daemon allows
+you three handoffs per source an hour, one at a time. Choosing `--under` or
+`--channel_id` is the operator's call. `herrscher session create` is for a fresh
 session with a brief you write yourself.
 
 Do not point the new session at your own worktree: it will not take a path, and

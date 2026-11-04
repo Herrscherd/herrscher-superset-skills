@@ -69,8 +69,7 @@ git push -u origin "$(git branch --show-current)"
 gh pr create
 ```
 
-That is the `pr-job` flow unchanged; being inside `~/.superset/worktrees/…`
-changes nothing about it. What it does change is *where you must be standing*: a
+Being inside `~/.superset/worktrees/…` changes nothing about that git flow. What it does change is *where you must be standing*: a
 Superset workspace's branch is pushed from the Superset worktree, a session's
 branch from the session worktree. Pushing one from the other means committing to
 a branch that is checked out somewhere else, where another agent is working.
